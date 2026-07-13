@@ -1,36 +1,43 @@
 package com.gwozdz1uu.hibernate_mastery.entity;
 
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
+@Setter
+@Getter
+@NoArgsConstructor
+@ToString
+@Entity
+@Table(name = "trainee")
+@PrimaryKeyJoinColumn(name = "user_id")
 public class Trainee extends User {
 
+    @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
+
+    @Column(name = "address")
     private String address;
 
-    public Trainee() {
-    }
+    @ManyToMany
+    @JoinTable(
+            name = "trainee_trainer",
+            joinColumns = @JoinColumn(name = "trainee_id"),
+            inverseJoinColumns = @JoinColumn(name = "trainer_id")
+    )
+    private List<Trainer> trainers = new ArrayList<>();
 
     public Trainee(Long id, String firstName, String lastName, String username, String password,
                    boolean isActive, LocalDate dateOfBirth, String address) {
         super(id, firstName, lastName, username, password, isActive);
         this.dateOfBirth = dateOfBirth;
-        this.address = address;
-    }
-
-    public LocalDate getDateOfBirth() {
-        return dateOfBirth;
-    }
-
-    public void setDateOfBirth(LocalDate dateOfBirth) {
-        this.dateOfBirth = dateOfBirth;
-    }
-
-    public String getAddress() {
-        return address;
-    }
-
-    public void setAddress(String address) {
         this.address = address;
     }
 
@@ -47,18 +54,5 @@ public class Trainee extends User {
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), dateOfBirth, address);
-    }
-
-    @Override
-    public String toString() {
-        return "Trainee{" +
-                "id=" + getId() +
-                ", firstName='" + getFirstName() + '\'' +
-                ", lastName='" + getLastName() + '\'' +
-                ", username='" + getUsername() + '\'' +
-                ", isActive=" + getIsActive() +
-                ", dateOfBirth=" + dateOfBirth +
-                ", address='" + address + '\'' +
-                '}';
     }
 }

@@ -1,25 +1,35 @@
 package com.gwozdz1uu.hibernate_mastery.entity;
 
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
+
+@Setter
+@Getter
+@ToString
+@NoArgsConstructor
+@Entity
+@Table(name = "trainer")
+@PrimaryKeyJoinColumn(name = "user_id")
 public class Trainer extends User {
 
-    private String specialization;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "specialization_id", nullable = false)
+    private TrainingType specialization;
 
-    public Trainer() {
-    }
+    @ManyToMany(mappedBy = "trainers")
+    private List<Trainee> trainees = new ArrayList<>();
 
     public Trainer(Long id, String firstName, String lastName, String username, String password,
-                   boolean isActive, String specialization) {
+                   boolean isActive, TrainingType specialization) {
         super(id, firstName, lastName, username, password, isActive);
-        this.specialization = specialization;
-    }
-
-    public String getSpecialization() {
-        return specialization;
-    }
-
-    public void setSpecialization(String specialization) {
         this.specialization = specialization;
     }
 
@@ -35,17 +45,5 @@ public class Trainer extends User {
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), specialization);
-    }
-
-    @Override
-    public String toString() {
-        return "Trainer{" +
-                "id=" + getId() +
-                ", firstName='" + getFirstName() + '\'' +
-                ", lastName='" + getLastName() + '\'' +
-                ", username='" + getUsername() + '\'' +
-                ", isActive=" + getIsActive() +
-                ", specialization='" + specialization + '\'' +
-                '}';
     }
 }
