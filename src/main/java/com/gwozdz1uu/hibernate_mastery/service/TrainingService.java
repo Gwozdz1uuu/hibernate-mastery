@@ -1,49 +1,64 @@
 package com.gwozdz1uu.hibernate_mastery.service;
 
 
+import com.gwozdz1uu.hibernate_mastery.dao.TraineeDAO;
 import com.gwozdz1uu.hibernate_mastery.dao.TrainingDAO;
+import com.gwozdz1uu.hibernate_mastery.dao.TrainerDAO;
+import com.gwozdz1uu.hibernate_mastery.entity.Trainee;
+import com.gwozdz1uu.hibernate_mastery.entity.Trainer;
 import com.gwozdz1uu.hibernate_mastery.entity.Training;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.gwozdz1uu.hibernate_mastery.entity.TrainingType;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
+import java.time.LocalDate;
 
 @Service
+@Transactional
 public class TrainingService {
 
-    private static final Logger logger = LoggerFactory.getLogger(TrainingService.class);
+    private final TrainingDAO trainingDAO;
+    private final TraineeDAO traineeDAO;
+    private final TrainerDAO trainerDAO;
 
-    private TrainingDAO trainingDAO;
+    @PersistenceContext
+    private EntityManager em;
 
-    @Autowired
-    public void setTrainingDAO(TrainingDAO trainingDAO) {
+    public TrainingService(TrainingDAO trainingDAO, TraineeDAO traineeDAO, TrainerDAO trainerDAO) {
         this.trainingDAO = trainingDAO;
+        this.traineeDAO = traineeDAO;
+        this.trainerDAO = trainerDAO;
     }
 
-    public Training createTraining(Training training) {
-        logger.info("Creating training: {}", training.getTrainingName());
-        Training created = trainingDAO.create(training);
-        logger.info("Training created with id: {}", created.getId());
-        return created;
-    }
+    public Training addTraining(
+            String traineeUsername,
+            String trainerUsername,
+            String trainingName,
+            Long trainingTypeId,
+            LocalDate trainingDate,
+            int durationMinutes
+    ) {
+        Trainee trainee = traineeDAO.findByUsername(traineeUsername)
+                .orElseThrow(() -> new IllegalArgumentException("Trainee not found: " + traineeUsername));
+        Trainer trainer = trainerDAO.findBuUsername(trainerUsername)
+                .orElseThrow(() -> new IllegalArgumentException("Trainer not found: " + trainerUsername));
+        TrainingType type = em.find(TrainingType.class, trainingTypeId);
+        if (type == null) {
+            throw new IllegalArgumentException("TrainingType not found: " + trainingTypeId);
+        }
 
-    public Optional<Training> selectTraining(Long id) {
-        logger.info("Selecting training with id: {}", id);
-        Optional<Training> training = trainingDAO.findById(id);
-        training.ifPresentOrElse(
-                t -> logger.info("Found training: {}", t.getTrainingName()),
-                () -> logger.warn("Training not found with id: {}", id)
+        Training training = new Training(
+                null,
+                trainee,
+                trainer,
+                trainingName,
+                type,
+                trainingDate,
+                durationMinutes
         );
-        return training;
-    }
-
-    public List<Training> selectAllTrainings() {
-        logger.info("Selecting all trainings");
-        List<Training> trainings = trainingDAO.findAll();
-        logger.info("Found {} trainings", trainings.size());
-        return trainings;
+        trainee.getTrainings().add(training);
+        return trainingDAO.create(training);
     }
 }

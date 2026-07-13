@@ -34,6 +34,9 @@ public class Trainee extends User {
     )
     private List<Trainer> trainers = new ArrayList<>();
 
+    @OneToMany(mappedBy = "trainee", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Training> trainings = new ArrayList<>();
+
     public Trainee(Long id, String firstName, String lastName, String username, String password,
                    boolean isActive, LocalDate dateOfBirth, String address) {
         super(id, firstName, lastName, username, password, isActive);
