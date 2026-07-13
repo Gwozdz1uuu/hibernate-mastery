@@ -1,6 +1,6 @@
-package com.epam.gym_crm_system.util;
+package com.gwozdz1uu.hibernate_mastery.util;
 
-import com.epam.gym_crm_system.model.User;
+import com.gwozdz1uu.hibernate_mastery.entity.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

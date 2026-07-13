@@ -1,4 +1,4 @@
-package com.epam.gym_crm_system.model;
+package com.gwozdz1uu.hibernate_mastery.entity;
 
 import java.time.LocalDate;
 import java.util.Objects;

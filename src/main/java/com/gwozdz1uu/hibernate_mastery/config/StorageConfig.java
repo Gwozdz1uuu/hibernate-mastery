@@ -1,8 +1,8 @@
-package com.epam.gym_crm_system.config;
+package com.gwozdz1uu.hibernate_mastery.config;
 
-import com.epam.gym_crm_system.model.Trainee;
-import com.epam.gym_crm_system.model.Trainer;
-import com.epam.gym_crm_system.model.Training;
+import com.gwozdz1uu.hibernate_mastery.entity.Trainee;
+import com.gwozdz1uu.hibernate_mastery.entity.Trainer;
+import com.gwozdz1uu.hibernate_mastery.entity.Training;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

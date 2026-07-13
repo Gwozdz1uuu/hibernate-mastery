@@ -1,4 +1,4 @@
-package com.epam.gym_crm_system.util;
+package com.gwozdz1uu.hibernate_mastery.util;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

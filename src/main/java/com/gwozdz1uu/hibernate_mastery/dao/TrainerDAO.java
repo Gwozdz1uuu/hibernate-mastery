@@ -1,6 +1,6 @@
-package com.epam.gym_crm_system.dao;
+package com.gwozdz1uu.hibernate_mastery.dao;
 
-import com.epam.gym_crm_system.model.Trainer;
+import com.gwozdz1uu.hibernate_mastery.entity.Trainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

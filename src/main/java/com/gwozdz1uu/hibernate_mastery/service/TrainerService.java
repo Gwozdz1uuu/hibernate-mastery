@@ -1,9 +1,9 @@
-package com.epam.gym_crm_system.service;
+package com.gwozdz1uu.hibernate_mastery.service;
 
-import com.epam.gym_crm_system.dao.TrainerDAO;
-import com.epam.gym_crm_system.model.Trainer;
-import com.epam.gym_crm_system.util.PasswordGenerator;
-import com.epam.gym_crm_system.util.UsernameGenerator;
+import com.gwozdz1uu.hibernate_mastery.dao.TrainerDAO;
+import com.gwozdz1uu.hibernate_mastery.entity.Trainer;
+import com.gwozdz1uu.hibernate_mastery.util.PasswordGenerator;
+import com.gwozdz1uu.hibernate_mastery.util.UsernameGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

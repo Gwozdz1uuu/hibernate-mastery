@@ -1,11 +1,11 @@
-package com.epam.gym_crm_system.facade;
+package com.gwozdz1uu.hibernate_mastery.facade;
 
-import com.epam.gym_crm_system.model.Trainee;
-import com.epam.gym_crm_system.model.Trainer;
-import com.epam.gym_crm_system.model.Training;
-import com.epam.gym_crm_system.service.TraineeService;
-import com.epam.gym_crm_system.service.TrainerService;
-import com.epam.gym_crm_system.service.TrainingService;
+import com.gwozdz1uu.hibernate_mastery.entity.Trainee;
+import com.gwozdz1uu.hibernate_mastery.entity.Trainer;
+import com.gwozdz1uu.hibernate_mastery.entity.Training;
+import com.gwozdz1uu.hibernate_mastery.service.TraineeService;
+import com.gwozdz1uu.hibernate_mastery.service.TrainerService;
+import com.gwozdz1uu.hibernate_mastery.service.TrainingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

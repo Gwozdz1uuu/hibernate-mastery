@@ -1,12 +1,12 @@
-package com.epam.gym_crm_system.storage;
+package com.gwozdz1uu.hibernate_mastery.storage;
 
-import com.epam.gym_crm_system.model.Trainee;
-import com.epam.gym_crm_system.model.Trainer;
-import com.epam.gym_crm_system.model.Training;
-import com.epam.gym_crm_system.model.TrainingType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.gwozdz1uu.hibernate_mastery.entity.Trainee;
+import com.gwozdz1uu.hibernate_mastery.entity.Trainer;
+import com.gwozdz1uu.hibernate_mastery.entity.Training;
+import com.gwozdz1uu.hibernate_mastery.entity.TrainingType;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
