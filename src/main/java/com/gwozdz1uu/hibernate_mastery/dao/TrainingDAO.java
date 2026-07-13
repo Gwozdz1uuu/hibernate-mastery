@@ -1,48 +1,57 @@
 package com.gwozdz1uu.hibernate_mastery.dao;
 
 import com.gwozdz1uu.hibernate_mastery.entity.Training;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.TypedQuery;
 import org.springframework.stereotype.Repository;
 
-import java.util.ArrayList;
+import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Repository
 public class TrainingDAO {
 
-    private static final Logger logger = LoggerFactory.getLogger(TrainingDAO.class);
-
-    private final Map<Long, Training> trainingStorage;
-    private final AtomicLong idCounter = new AtomicLong(0);
-
-    @Autowired
-    public TrainingDAO(@Qualifier("trainingStorage") Map<Long, Training> trainingStorage) {
-        this.trainingStorage = trainingStorage;
-        long maxId = trainingStorage.keySet().stream().mapToLong(Long::longValue).max().orElse(0);
-        idCounter.set(maxId);
-    }
+    @PersistenceContext
+    private EntityManager em;
 
     public Training create(Training training) {
-        long newId = idCounter.incrementAndGet();
-        training.setId(newId);
-        trainingStorage.put(newId, training);
-        logger.debug("Created training with id: {}", newId);
+        em.persist(training);
         return training;
     }
 
-    public Optional<Training> findById(Long id) {
-        logger.debug("Finding training by id: {}", id);
-        return Optional.ofNullable(trainingStorage.get(id));
+    public List<Training> findByTraineeCriteria(
+            String traineeUsername, LocalDate fromDate, LocalDate toDate,
+            String trainerName, String trainingTypeName) {
+        StringBuilder jpql = new StringBuilder(
+                "SELECT tr FROM Training tr WHERE tr.trainee.username = :username");
+        if (fromDate != null) jpql.append(" AND tr.trainingDate >= :fromDate");
+        if (toDate != null)   jpql.append(" AND tr.trainingDate <= :toDate");
+        if (trainerName != null) jpql.append(" AND tr.trainer.firstName LIKE :trainerName");
+        if (trainingTypeName != null) jpql.append(" AND tr.trainingType.trainingTypeName = :typeName");
+
+        TypedQuery<Training> query = em.createQuery(jpql.toString(), Training.class);
+        query.setParameter("username", traineeUsername);
+        if (fromDate != null) query.setParameter("fromDate", fromDate);
+        if (toDate != null)   query.setParameter("toDate", toDate);
+        if (trainerName != null) query.setParameter("trainerName", "%" + trainerName + "%");
+        if (trainingTypeName != null) query.setParameter("typeName", trainingTypeName);
+
+        return query.getResultList();
     }
 
-    public List<Training> findAll() {
-        logger.debug("Finding all trainings, total count: {}", trainingStorage.size());
-        return new ArrayList<>(trainingStorage.values());
+    public List<Training> findByTrainerCriteria(
+            String trainerUsername, LocalDate fromDate, LocalDate toDate, String traineeName) {
+        StringBuilder jpql = new StringBuilder(
+                "SELECT tr FROM Training tr WHERE tr.trainer.username = :username");
+        if (fromDate != null) jpql.append(" AND tr.trainingDate >= :fromDate");
+        if (toDate != null)   jpql.append(" AND tr.trainingDate <= :toDate");
+        if (traineeName != null) jpql.append(" AND tr.trainee.firstName LIKE :traineeName");
+        TypedQuery<Training> query = em.createQuery(jpql.toString(), Training.class);
+        query.setParameter("username", trainerUsername);
+        if (fromDate != null) query.setParameter("fromDate", fromDate);
+        if (toDate != null)   query.setParameter("toDate", toDate);
+        if (traineeName != null) query.setParameter("traineeName", traineeName);
+        return query.getResultList();
     }
 }
