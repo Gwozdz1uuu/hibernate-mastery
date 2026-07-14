@@ -5,6 +5,7 @@ import com.gwozdz1uu.hibernate_mastery.entity.Trainer;
 import com.gwozdz1uu.hibernate_mastery.entity.Training;
 import com.gwozdz1uu.hibernate_mastery.entity.TrainingType;
 import com.gwozdz1uu.hibernate_mastery.exception.AuthenticationException;
+import com.gwozdz1uu.hibernate_mastery.exception.EntityNotFoundException;
 import com.gwozdz1uu.hibernate_mastery.exception.ValidationException;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
@@ -91,6 +92,22 @@ class TrainingServiceTest {
                 () -> trainingService.addTraining(
                         trainee.getUsername(), trainee.getPassword(),
                         trainer.getUsername(), "  ", type.getId(),
+                        LocalDate.now(), 30));
+    }
+
+    @Test
+    void addTraining_invalidTypeId_shouldThrow() {
+        TrainingType type = new TrainingType("HIIT4");
+        em.persist(type);
+        em.flush();
+
+        Trainee trainee = traineeService.createTrainee("Val3", "User", null, null);
+        Trainer trainer = trainerService.createTrainer("Coach4", "HIIT", type);
+
+        assertThrows(EntityNotFoundException.class,
+                () -> trainingService.addTraining(
+                        trainee.getUsername(), trainee.getPassword(),
+                        trainer.getUsername(), "Session", 999999L,
                         LocalDate.now(), 30));
     }
 

@@ -3,14 +3,13 @@ package com.gwozdz1uu.hibernate_mastery.service;
 
 import com.gwozdz1uu.hibernate_mastery.dao.TrainerRepository;
 import com.gwozdz1uu.hibernate_mastery.dao.TrainingRepository;
+import com.gwozdz1uu.hibernate_mastery.dao.TrainingTypeRepository;
 import com.gwozdz1uu.hibernate_mastery.entity.Trainee;
 import com.gwozdz1uu.hibernate_mastery.entity.Trainer;
 import com.gwozdz1uu.hibernate_mastery.entity.Training;
 import com.gwozdz1uu.hibernate_mastery.entity.TrainingType;
 import com.gwozdz1uu.hibernate_mastery.exception.EntityNotFoundException;
 import com.gwozdz1uu.hibernate_mastery.util.InputValidator;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,10 +28,8 @@ public class TrainingService {
     private final AuthenticationService authenticationService;
     private final TrainingRepository trainingRepository;
     private final TrainerRepository trainerRepository;
+    private final TrainingTypeRepository trainingTypeRepository;
     private final InputValidator inputValidator;
-
-    @PersistenceContext
-    private EntityManager em;
 
     public Training addTraining(
             String traineeUsername,
@@ -55,10 +52,8 @@ public class TrainingService {
 
         Trainer trainer = trainerRepository.findByUsername(trainerUsername)
                 .orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + trainerUsername));
-        TrainingType type = em.find(TrainingType.class, trainingTypeId);
-        if (type == null) {
-            throw new EntityNotFoundException("TrainingType not found: " + trainingTypeId);
-        }
+        TrainingType type = trainingTypeRepository.findById(trainingTypeId)
+                .orElseThrow(() -> new EntityNotFoundException("TrainingType not found: " + trainingTypeId));
 
         Training training = new Training(
                 null,
