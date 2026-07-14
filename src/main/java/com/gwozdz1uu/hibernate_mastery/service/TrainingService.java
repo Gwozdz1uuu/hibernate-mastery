@@ -8,6 +8,8 @@ import com.gwozdz1uu.hibernate_mastery.entity.Trainee;
 import com.gwozdz1uu.hibernate_mastery.entity.Trainer;
 import com.gwozdz1uu.hibernate_mastery.entity.Training;
 import com.gwozdz1uu.hibernate_mastery.entity.TrainingType;
+import com.gwozdz1uu.hibernate_mastery.exception.AuthenticationException;
+import com.gwozdz1uu.hibernate_mastery.exception.EntityNotFoundException;
 import com.gwozdz1uu.hibernate_mastery.util.InputValidator;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -63,16 +65,16 @@ public class TrainingService {
         inputValidator.requirePositive(durationMinutes, "durationMinutes");
 
         Trainee trainee = traineeDAO.findByUsername(traineeUsername)
-                .orElseThrow(() -> new IllegalArgumentException("Trainee not found: " + traineeUsername));
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found: " + traineeUsername));
         if (!Objects.equals(trainee.getPassword(), traineePassword)) {
-            throw new IllegalArgumentException("Invalid password for: " + traineeUsername);
+            throw new AuthenticationException("Invalid password for: " + traineeUsername);
         }
 
         Trainer trainer = trainerDAO.findByUsername(trainerUsername)
-                .orElseThrow(() -> new IllegalArgumentException("Trainer not found: " + trainerUsername));
+                .orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + trainerUsername));
         TrainingType type = em.find(TrainingType.class, trainingTypeId);
         if (type == null) {
-            throw new IllegalArgumentException("TrainingType not found: " + trainingTypeId);
+            throw new EntityNotFoundException("TrainingType not found: " + trainingTypeId);
         }
 
         Training training = new Training(

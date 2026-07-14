@@ -4,6 +4,8 @@ import com.gwozdz1uu.hibernate_mastery.entity.Trainee;
 import com.gwozdz1uu.hibernate_mastery.entity.Trainer;
 import com.gwozdz1uu.hibernate_mastery.entity.Training;
 import com.gwozdz1uu.hibernate_mastery.entity.TrainingType;
+import com.gwozdz1uu.hibernate_mastery.exception.AuthenticationException;
+import com.gwozdz1uu.hibernate_mastery.exception.ValidationException;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,7 +71,7 @@ class TrainingServiceTest {
         Trainee trainee = traineeService.createTrainee("Test", "User", null, null);
         Trainer trainer = trainerService.createTrainer("Coach", "HIIT", type);
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(AuthenticationException.class,
                 () -> trainingService.addTraining(
                         trainee.getUsername(), "wrongPassword",
                         trainer.getUsername(), "Session", type.getId(),
@@ -85,7 +87,7 @@ class TrainingServiceTest {
         Trainee trainee = traineeService.createTrainee("Val", "User", null, null);
         Trainer trainer = trainerService.createTrainer("Coach2", "HIIT", type);
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(ValidationException.class,
                 () -> trainingService.addTraining(
                         trainee.getUsername(), trainee.getPassword(),
                         trainer.getUsername(), "  ", type.getId(),
@@ -101,7 +103,7 @@ class TrainingServiceTest {
         Trainee trainee = traineeService.createTrainee("Val2", "User", null, null);
         Trainer trainer = trainerService.createTrainer("Coach3", "HIIT", type);
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(ValidationException.class,
                 () -> trainingService.addTraining(
                         trainee.getUsername(), trainee.getPassword(),
                         trainer.getUsername(), "Session", type.getId(),

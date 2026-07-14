@@ -4,6 +4,8 @@ import com.gwozdz1uu.hibernate_mastery.entity.Trainee;
 import com.gwozdz1uu.hibernate_mastery.entity.Trainer;
 import com.gwozdz1uu.hibernate_mastery.entity.Training;
 import com.gwozdz1uu.hibernate_mastery.entity.TrainingType;
+import com.gwozdz1uu.hibernate_mastery.exception.AuthenticationException;
+import com.gwozdz1uu.hibernate_mastery.exception.ValidationException;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,7 +53,7 @@ class TraineeServiceTest {
 
     @Test
     void createTrainee_blankFirstName_shouldThrow() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(ValidationException.class,
                 () -> traineeService.createTrainee("", "Doe", null, null));
     }
 
@@ -77,7 +79,7 @@ class TraineeServiceTest {
     @Test
     void getByUsername_invalidPassword_shouldThrow() {
         Trainee created = traineeService.createTrainee("Alice", "Smith", null, null);
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(AuthenticationException.class,
                 () -> traineeService.getByUsername(created.getUsername(), "wrong"));
     }
 
@@ -116,7 +118,7 @@ class TraineeServiceTest {
     @Test
     void updateProfile_blankLastName_shouldThrow() {
         Trainee trainee = traineeService.createTrainee("Dan", "Lee", null, null);
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(ValidationException.class,
                 () -> traineeService.updateProfile(
                         trainee.getUsername(), trainee.getPassword(),
                         "Dan", "  ", null, null, true));

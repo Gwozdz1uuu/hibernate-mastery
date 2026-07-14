@@ -7,6 +7,8 @@ import com.gwozdz1uu.hibernate_mastery.dao.TrainingDAO;
 import com.gwozdz1uu.hibernate_mastery.entity.Trainee;
 import com.gwozdz1uu.hibernate_mastery.entity.Trainer;
 import com.gwozdz1uu.hibernate_mastery.entity.Training;
+import com.gwozdz1uu.hibernate_mastery.exception.AuthenticationException;
+import com.gwozdz1uu.hibernate_mastery.exception.EntityNotFoundException;
 import com.gwozdz1uu.hibernate_mastery.util.InputValidator;
 import com.gwozdz1uu.hibernate_mastery.util.PasswordGenerator;
 import com.gwozdz1uu.hibernate_mastery.util.UsernameGenerator;
@@ -51,9 +53,9 @@ public class TraineeService {
 
     private Trainee authenticate(String username, String password) {
         Trainee trainee = traineeDAO.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Trainee not found: " + username));
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found: " + username));
         if (!trainee.getPassword().equals(password)) {
-            throw new IllegalArgumentException("Invalid password for: " + username);
+            throw new AuthenticationException("Invalid password for: " + username);
         }
         return trainee;
     }
@@ -159,7 +161,7 @@ public class TraineeService {
 
         List<Trainer> trainers = trainerUsernames.stream()
                 .map(trainerUsername -> trainerDAO.findByUsername(trainerUsername)
-                        .orElseThrow(() -> new IllegalArgumentException("Trainer not found: " + trainerUsername)))
+                        .orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + trainerUsername)))
                 .collect(Collectors.toList());
 
         trainee.setTrainers(trainers);

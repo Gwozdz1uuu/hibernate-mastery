@@ -4,6 +4,8 @@ import com.gwozdz1uu.hibernate_mastery.entity.Trainee;
 import com.gwozdz1uu.hibernate_mastery.entity.Trainer;
 import com.gwozdz1uu.hibernate_mastery.entity.Training;
 import com.gwozdz1uu.hibernate_mastery.entity.TrainingType;
+import com.gwozdz1uu.hibernate_mastery.exception.AuthenticationException;
+import com.gwozdz1uu.hibernate_mastery.exception.ValidationException;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,7 +56,7 @@ class TrainerServiceTest {
 
     @Test
     void createTrainer_nullSpecialization_shouldThrow() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(ValidationException.class,
                 () -> trainerService.createTrainer("Tom", "Taylor", null));
     }
 
@@ -84,7 +86,7 @@ class TrainerServiceTest {
     void getByUsername_invalidPassword_shouldThrow() {
         TrainingType type = persistType("Boxing2");
         Trainer created = trainerService.createTrainer("Max", "Power", type);
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(AuthenticationException.class,
                 () -> trainerService.getByUsername(created.getUsername(), "wrong"));
     }
 
