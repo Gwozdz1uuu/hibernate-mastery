@@ -27,7 +27,10 @@ public class TrainingDAO {
                 "SELECT tr FROM Training tr WHERE tr.trainee.username = :username");
         if (fromDate != null) jpql.append(" AND tr.trainingDate >= :fromDate");
         if (toDate != null)   jpql.append(" AND tr.trainingDate <= :toDate");
-        if (trainerName != null) jpql.append(" AND tr.trainer.firstName LIKE :trainerName");
+        if (trainerName != null) {
+            jpql.append(" AND (tr.trainer.firstName LIKE :trainerName")
+                .append(" OR tr.trainer.lastName LIKE :trainerName)");
+        }
         if (trainingTypeName != null) jpql.append(" AND tr.trainingType.trainingTypeName = :typeName");
 
         TypedQuery<Training> query = em.createQuery(jpql.toString(), Training.class);
@@ -46,12 +49,15 @@ public class TrainingDAO {
                 "SELECT tr FROM Training tr WHERE tr.trainer.username = :username");
         if (fromDate != null) jpql.append(" AND tr.trainingDate >= :fromDate");
         if (toDate != null)   jpql.append(" AND tr.trainingDate <= :toDate");
-        if (traineeName != null) jpql.append(" AND tr.trainee.firstName LIKE :traineeName");
+        if (traineeName != null) {
+            jpql.append(" AND (tr.trainee.firstName LIKE :traineeName")
+                .append(" OR tr.trainee.lastName LIKE :traineeName)");
+        }
         TypedQuery<Training> query = em.createQuery(jpql.toString(), Training.class);
         query.setParameter("username", trainerUsername);
         if (fromDate != null) query.setParameter("fromDate", fromDate);
         if (toDate != null)   query.setParameter("toDate", toDate);
-        if (traineeName != null) query.setParameter("traineeName", traineeName);
+        if (traineeName != null) query.setParameter("traineeName", "%" + traineeName + "%");
         return query.getResultList();
     }
 }

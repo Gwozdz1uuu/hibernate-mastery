@@ -25,7 +25,7 @@ public class TrainerDAO {
         return trainer;
     }
 
-    public Optional<Trainer> findBuUsername(String username) {
+    public Optional<Trainer> findByUsername(String username) {
         return em.createQuery(
                 "SELECT t FROM Trainer t WHERE t.username = :username", Trainer.class)
                 .setParameter("username", username)

@@ -7,8 +7,11 @@ import com.gwozdz1uu.hibernate_mastery.entity.Trainee;
 import com.gwozdz1uu.hibernate_mastery.entity.Trainer;
 import com.gwozdz1uu.hibernate_mastery.entity.Training;
 import com.gwozdz1uu.hibernate_mastery.entity.TrainingType;
+import com.gwozdz1uu.hibernate_mastery.util.InputValidator;
 import com.gwozdz1uu.hibernate_mastery.util.PasswordGenerator;
 import com.gwozdz1uu.hibernate_mastery.util.UsernameGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,28 +23,33 @@ import java.util.Objects;
 @Transactional
 public class TrainerService {
 
+    private static final Logger log = LoggerFactory.getLogger(TrainerService.class);
+
     private final TraineeDAO traineeDAO;
     private final TrainerDAO trainerDAO;
     private final TrainingDAO trainingDAO;
     private final UsernameGenerator usernameGenerator;
     private final PasswordGenerator passwordGenerator;
+    private final InputValidator inputValidator;
 
     public TrainerService(
             TraineeDAO traineeDAO,
             TrainerDAO trainerDAO,
             TrainingDAO trainingDAO,
             UsernameGenerator usernameGenerator,
-            PasswordGenerator passwordGenerator
+            PasswordGenerator passwordGenerator,
+            InputValidator inputValidator
     ) {
         this.traineeDAO = traineeDAO;
         this.trainerDAO = trainerDAO;
         this.trainingDAO = trainingDAO;
         this.usernameGenerator = usernameGenerator;
         this.passwordGenerator = passwordGenerator;
+        this.inputValidator = inputValidator;
     }
 
     private Trainer authenticate(String username, String password) {
-        Trainer trainer = trainerDAO.findBuUsername(username)
+        Trainer trainer = trainerDAO.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Trainer not found: " + username));
         if (!trainer.getPassword().equals(password)) {
             throw new IllegalArgumentException("Invalid password for: " + username);
@@ -59,6 +67,10 @@ public class TrainerService {
     }
 
     public Trainer createTrainer(String firstName, String lastName, TrainingType specialization) {
+        inputValidator.requireNonBlank(firstName, "firstName");
+        inputValidator.requireNonBlank(lastName, "lastName");
+        inputValidator.requireNonNull(specialization, "specialization");
+
         Trainer trainer = new Trainer();
         trainer.setFirstName(firstName);
         trainer.setLastName(lastName);
@@ -69,23 +81,31 @@ public class TrainerService {
         trainer.setUsername(username);
         trainer.setPassword(passwordGenerator.generatePassword());
 
-        return trainerDAO.create(trainer);
+        Trainer created = trainerDAO.create(trainer);
+        log.info("Created trainer profile: username={}", created.getUsername());
+        return created;
     }
 
     public boolean matchCredentials(String username, String password) {
-        return trainerDAO.findBuUsername(username)
+        boolean matched = trainerDAO.findByUsername(username)
                 .map(t -> Objects.equals(t.getPassword(), password))
                 .orElse(false);
+        log.debug("Trainer credential match for {}: {}", username, matched);
+        return matched;
     }
 
     public Trainer getByUsername(String username, String password) {
-        return authenticate(username, password);
+        Trainer trainer = authenticate(username, password);
+        log.info("Selected trainer profile: username={}", username);
+        return trainer;
     }
 
     public void changePassword(String username, String oldPassword, String newPassword) {
+        inputValidator.requireNonBlank(newPassword, "newPassword");
         Trainer trainer = authenticate(username, oldPassword);
         trainer.setPassword(newPassword);
         trainerDAO.update(trainer);
+        log.info("Changed password for trainer: username={}", username);
     }
 
     public Trainer updateProfile(
@@ -96,18 +116,25 @@ public class TrainerService {
             TrainingType specialization,
             boolean isActive
     ) {
+        inputValidator.requireNonBlank(firstName, "firstName");
+        inputValidator.requireNonBlank(lastName, "lastName");
+        inputValidator.requireNonNull(specialization, "specialization");
+
         Trainer trainer = authenticate(username, password);
         trainer.setFirstName(firstName);
         trainer.setLastName(lastName);
         trainer.setSpecialization(specialization);
         trainer.setActive(isActive);
-        return trainerDAO.update(trainer);
+        Trainer updated = trainerDAO.update(trainer);
+        log.info("Updated trainer profile: username={}", username);
+        return updated;
     }
 
     public void setActive(String username, String password, boolean isActive) {
         Trainer trainer = authenticate(username, password);
         trainer.setActive(isActive);
         trainerDAO.update(trainer);
+        log.info("Set trainer active={} for username={}", isActive, username);
     }
 
     public List<Training> getTrainings(
@@ -118,11 +145,15 @@ public class TrainerService {
             String traineeName
     ) {
         authenticate(username, password);
-        return trainingDAO.findByTrainerCriteria(username, fromDate, toDate, traineeName);
+        List<Training> trainings = trainingDAO.findByTrainerCriteria(username, fromDate, toDate, traineeName);
+        log.info("Retrieved {} trainings for trainer: username={}", trainings.size(), username);
+        return trainings;
     }
 
     public List<Trainer> getUnassignedTrainers(String traineeUsername, String traineePassword) {
         authenticateTrainee(traineeUsername, traineePassword);
-        return trainerDAO.findUnassignedToTrainee(traineeUsername);
+        List<Trainer> trainers = trainerDAO.findUnassignedToTrainee(traineeUsername);
+        log.info("Retrieved {} unassigned trainers for trainee: username={}", trainers.size(), traineeUsername);
+        return trainers;
     }
 }

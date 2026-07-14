@@ -41,6 +41,7 @@ class TrainingServiceTest {
 
         Training training = trainingService.addTraining(
                 trainee.getUsername(),
+                trainee.getPassword(),
                 trainer.getUsername(),
                 "Leg day",
                 type.getId(),
@@ -58,5 +59,52 @@ class TrainingServiceTest {
         Training reloaded = em.find(Training.class, training.getId());
         assertNotNull(reloaded);
     }
-}
 
+    @Test
+    void addTraining_wrongPassword_shouldThrow() {
+        TrainingType type = new TrainingType("HIIT");
+        em.persist(type);
+        em.flush();
+
+        Trainee trainee = traineeService.createTrainee("Test", "User", null, null);
+        Trainer trainer = trainerService.createTrainer("Coach", "HIIT", type);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> trainingService.addTraining(
+                        trainee.getUsername(), "wrongPassword",
+                        trainer.getUsername(), "Session", type.getId(),
+                        LocalDate.now(), 30));
+    }
+
+    @Test
+    void addTraining_blankTrainingName_shouldThrow() {
+        TrainingType type = new TrainingType("HIIT2");
+        em.persist(type);
+        em.flush();
+
+        Trainee trainee = traineeService.createTrainee("Val", "User", null, null);
+        Trainer trainer = trainerService.createTrainer("Coach2", "HIIT", type);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> trainingService.addTraining(
+                        trainee.getUsername(), trainee.getPassword(),
+                        trainer.getUsername(), "  ", type.getId(),
+                        LocalDate.now(), 30));
+    }
+
+    @Test
+    void addTraining_zeroDuration_shouldThrow() {
+        TrainingType type = new TrainingType("HIIT3");
+        em.persist(type);
+        em.flush();
+
+        Trainee trainee = traineeService.createTrainee("Val2", "User", null, null);
+        Trainer trainer = trainerService.createTrainer("Coach3", "HIIT", type);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> trainingService.addTraining(
+                        trainee.getUsername(), trainee.getPassword(),
+                        trainer.getUsername(), "Session", type.getId(),
+                        LocalDate.now(), 0));
+    }
+}
