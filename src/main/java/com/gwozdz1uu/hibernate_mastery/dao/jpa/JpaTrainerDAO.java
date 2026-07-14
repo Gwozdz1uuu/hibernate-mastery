@@ -1,5 +1,6 @@
-package com.gwozdz1uu.hibernate_mastery.dao;
+package com.gwozdz1uu.hibernate_mastery.dao.jpa;
 
+import com.gwozdz1uu.hibernate_mastery.dao.TrainerRepository;
 import com.gwozdz1uu.hibernate_mastery.entity.Trainer;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -9,33 +10,41 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public class TrainerDAO {
+public class JpaTrainerDAO implements TrainerRepository {
 
     @PersistenceContext
     private EntityManager em;
 
-
-    public Trainer create(Trainer trainer) {
+    @Override
+    public Trainer save(Trainer trainer) {
         em.persist(trainer);
         return trainer;
     }
 
+    @Override
     public Trainer update(Trainer trainer) {
-        em.merge(trainer);
-        return trainer;
+        return em.merge(trainer);
     }
 
+    @Override
     public Optional<Trainer> findByUsername(String username) {
         return em.createQuery(
-                "SELECT t FROM Trainer t WHERE t.username = :username", Trainer.class)
+                        "SELECT t FROM Trainer t WHERE t.username = :username", Trainer.class)
                 .setParameter("username", username)
-                .getResultStream().findFirst();
+                .getResultStream()
+                .findFirst();
     }
 
-    public List<Trainer> findAll() {
-        return em.createQuery("SELECT t FROM Trainer t", Trainer.class).getResultList();
+    @Override
+    public boolean existsByUsername(String username) {
+        Long count = em.createQuery(
+                        "SELECT COUNT(t) FROM Trainer t WHERE t.username = :username", Long.class)
+                .setParameter("username", username)
+                .getSingleResult();
+        return count > 0;
     }
 
+    @Override
     public List<Trainer> findUnassignedToTrainee(String traineeUsername) {
         return em.createQuery(
                         "SELECT t FROM Trainer t WHERE t NOT IN " +

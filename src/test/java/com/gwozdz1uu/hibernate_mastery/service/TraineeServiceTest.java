@@ -52,6 +52,14 @@ class TraineeServiceTest {
     }
 
     @Test
+    void createTrainee_duplicateName_shouldAppendSerial() {
+        traineeService.createTrainee("John", "Doe", null, null);
+        Trainee second = traineeService.createTrainee("John", "Doe", null, null);
+
+        assertEquals("John.Doe1", second.getUsername());
+    }
+
+    @Test
     void createTrainee_blankFirstName_shouldThrow() {
         assertThrows(ValidationException.class,
                 () -> traineeService.createTrainee("", "Doe", null, null));

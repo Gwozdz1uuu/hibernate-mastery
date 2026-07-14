@@ -1,51 +1,38 @@
 package com.gwozdz1uu.hibernate_mastery.service;
 
 
-import com.gwozdz1uu.hibernate_mastery.dao.TraineeDAO;
-import com.gwozdz1uu.hibernate_mastery.dao.TrainingDAO;
-import com.gwozdz1uu.hibernate_mastery.dao.TrainerDAO;
+import com.gwozdz1uu.hibernate_mastery.dao.TrainerRepository;
+import com.gwozdz1uu.hibernate_mastery.dao.TrainingRepository;
 import com.gwozdz1uu.hibernate_mastery.entity.Trainee;
 import com.gwozdz1uu.hibernate_mastery.entity.Trainer;
 import com.gwozdz1uu.hibernate_mastery.entity.Training;
 import com.gwozdz1uu.hibernate_mastery.entity.TrainingType;
-import com.gwozdz1uu.hibernate_mastery.exception.AuthenticationException;
 import com.gwozdz1uu.hibernate_mastery.exception.EntityNotFoundException;
 import com.gwozdz1uu.hibernate_mastery.util.InputValidator;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.Objects;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class TrainingService {
 
     private static final Logger log = LoggerFactory.getLogger(TrainingService.class);
 
-    private final TrainingDAO trainingDAO;
-    private final TraineeDAO traineeDAO;
-    private final TrainerDAO trainerDAO;
+    private final AuthenticationService authenticationService;
+    private final TrainingRepository trainingRepository;
+    private final TrainerRepository trainerRepository;
     private final InputValidator inputValidator;
 
     @PersistenceContext
     private EntityManager em;
-
-    public TrainingService(
-            TrainingDAO trainingDAO,
-            TraineeDAO traineeDAO,
-            TrainerDAO trainerDAO,
-            InputValidator inputValidator
-    ) {
-        this.trainingDAO = trainingDAO;
-        this.traineeDAO = traineeDAO;
-        this.trainerDAO = trainerDAO;
-        this.inputValidator = inputValidator;
-    }
 
     public Training addTraining(
             String traineeUsername,
@@ -64,13 +51,9 @@ public class TrainingService {
         inputValidator.requireNonNull(trainingDate, "trainingDate");
         inputValidator.requirePositive(durationMinutes, "durationMinutes");
 
-        Trainee trainee = traineeDAO.findByUsername(traineeUsername)
-                .orElseThrow(() -> new EntityNotFoundException("Trainee not found: " + traineeUsername));
-        if (!Objects.equals(trainee.getPassword(), traineePassword)) {
-            throw new AuthenticationException("Invalid password for: " + traineeUsername);
-        }
+        Trainee trainee = authenticationService.authenticateTrainee(traineeUsername, traineePassword);
 
-        Trainer trainer = trainerDAO.findByUsername(trainerUsername)
+        Trainer trainer = trainerRepository.findByUsername(trainerUsername)
                 .orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + trainerUsername));
         TrainingType type = em.find(TrainingType.class, trainingTypeId);
         if (type == null) {
@@ -87,7 +70,7 @@ public class TrainingService {
                 durationMinutes
         );
         trainee.getTrainings().add(training);
-        Training created = trainingDAO.create(training);
+        Training created = trainingRepository.save(training);
         log.info("Added training '{}' for trainee {} with trainer {}", trainingName, traineeUsername, trainerUsername);
         return created;
     }

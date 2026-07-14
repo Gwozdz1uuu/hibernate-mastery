@@ -1,17 +1,15 @@
 package com.gwozdz1uu.hibernate_mastery.service;
 
-import com.gwozdz1uu.hibernate_mastery.dao.TraineeDAO;
-import com.gwozdz1uu.hibernate_mastery.dao.TrainerDAO;
-import com.gwozdz1uu.hibernate_mastery.dao.TrainingDAO;
-import com.gwozdz1uu.hibernate_mastery.entity.Trainee;
+import com.gwozdz1uu.hibernate_mastery.dao.TrainerRepository;
+import com.gwozdz1uu.hibernate_mastery.dao.TrainingRepository;
 import com.gwozdz1uu.hibernate_mastery.entity.Trainer;
 import com.gwozdz1uu.hibernate_mastery.entity.Training;
 import com.gwozdz1uu.hibernate_mastery.entity.TrainingType;
-import com.gwozdz1uu.hibernate_mastery.exception.AuthenticationException;
-import com.gwozdz1uu.hibernate_mastery.exception.EntityNotFoundException;
+import com.gwozdz1uu.hibernate_mastery.security.PasswordEncoder;
 import com.gwozdz1uu.hibernate_mastery.util.InputValidator;
 import com.gwozdz1uu.hibernate_mastery.util.PasswordGenerator;
 import com.gwozdz1uu.hibernate_mastery.util.UsernameGenerator;
+import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -19,54 +17,21 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Objects;
 
 @Service
 @Transactional
+@AllArgsConstructor
 public class TrainerService {
 
     private static final Logger log = LoggerFactory.getLogger(TrainerService.class);
 
-    private final TraineeDAO traineeDAO;
-    private final TrainerDAO trainerDAO;
-    private final TrainingDAO trainingDAO;
+    private final AuthenticationService authenticationService;
+    private final TrainerRepository trainerRepository;
+    private final TrainingRepository trainingRepository;
     private final UsernameGenerator usernameGenerator;
     private final PasswordGenerator passwordGenerator;
+    private final PasswordEncoder passwordEncoder;
     private final InputValidator inputValidator;
-
-    public TrainerService(
-            TraineeDAO traineeDAO,
-            TrainerDAO trainerDAO,
-            TrainingDAO trainingDAO,
-            UsernameGenerator usernameGenerator,
-            PasswordGenerator passwordGenerator,
-            InputValidator inputValidator
-    ) {
-        this.traineeDAO = traineeDAO;
-        this.trainerDAO = trainerDAO;
-        this.trainingDAO = trainingDAO;
-        this.usernameGenerator = usernameGenerator;
-        this.passwordGenerator = passwordGenerator;
-        this.inputValidator = inputValidator;
-    }
-
-    private Trainer authenticate(String username, String password) {
-        Trainer trainer = trainerDAO.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + username));
-        if (!trainer.getPassword().equals(password)) {
-            throw new AuthenticationException("Invalid password for: " + username);
-        }
-        return trainer;
-    }
-
-    private Trainee authenticateTrainee(String username, String password) {
-        Trainee trainee = traineeDAO.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("Trainee not found: " + username));
-        if (!trainee.getPassword().equals(password)) {
-            throw new AuthenticationException("Invalid password for: " + username);
-        }
-        return trainee;
-    }
 
     public Trainer createTrainer(String firstName, String lastName, TrainingType specialization) {
         inputValidator.requireNonBlank(firstName, "firstName");
@@ -79,34 +44,35 @@ public class TrainerService {
         trainer.setActive(true);
         trainer.setSpecialization(specialization);
 
-        String username = usernameGenerator.generateUsername(firstName, lastName, trainerDAO.findAll());
+        String username = usernameGenerator.generateUniqueUsername(
+                firstName, lastName, trainerRepository::existsByUsername);
+        String rawPassword = passwordGenerator.generatePassword();
         trainer.setUsername(username);
-        trainer.setPassword(passwordGenerator.generatePassword());
+        trainer.setPassword(passwordEncoder.encode(rawPassword));
 
-        Trainer created = trainerDAO.create(trainer);
+        Trainer created = trainerRepository.save(trainer);
+        created.setPassword(rawPassword);
         log.info("Created trainer profile: username={}", created.getUsername());
         return created;
     }
 
     public boolean matchCredentials(String username, String password) {
-        boolean matched = trainerDAO.findByUsername(username)
-                .map(t -> Objects.equals(t.getPassword(), password))
-                .orElse(false);
+        boolean matched = authenticationService.trainerCredentialsMatch(username, password);
         log.debug("Trainer credential match for {}: {}", username, matched);
         return matched;
     }
 
     public Trainer getByUsername(String username, String password) {
-        Trainer trainer = authenticate(username, password);
+        Trainer trainer = authenticationService.authenticateTrainer(username, password);
         log.info("Selected trainer profile: username={}", username);
         return trainer;
     }
 
     public void changePassword(String username, String oldPassword, String newPassword) {
         inputValidator.requireNonBlank(newPassword, "newPassword");
-        Trainer trainer = authenticate(username, oldPassword);
-        trainer.setPassword(newPassword);
-        trainerDAO.update(trainer);
+        Trainer trainer = authenticationService.authenticateTrainer(username, oldPassword);
+        trainer.setPassword(passwordEncoder.encode(newPassword));
+        trainerRepository.update(trainer);
         log.info("Changed password for trainer: username={}", username);
     }
 
@@ -122,20 +88,20 @@ public class TrainerService {
         inputValidator.requireNonBlank(lastName, "lastName");
         inputValidator.requireNonNull(specialization, "specialization");
 
-        Trainer trainer = authenticate(username, password);
+        Trainer trainer = authenticationService.authenticateTrainer(username, password);
         trainer.setFirstName(firstName);
         trainer.setLastName(lastName);
         trainer.setSpecialization(specialization);
         trainer.setActive(isActive);
-        Trainer updated = trainerDAO.update(trainer);
+        Trainer updated = trainerRepository.update(trainer);
         log.info("Updated trainer profile: username={}", username);
         return updated;
     }
 
     public void setActive(String username, String password, boolean isActive) {
-        Trainer trainer = authenticate(username, password);
+        Trainer trainer = authenticationService.authenticateTrainer(username, password);
         trainer.setActive(isActive);
-        trainerDAO.update(trainer);
+        trainerRepository.update(trainer);
         log.info("Set trainer active={} for username={}", isActive, username);
     }
 
@@ -146,15 +112,15 @@ public class TrainerService {
             LocalDate toDate,
             String traineeName
     ) {
-        authenticate(username, password);
-        List<Training> trainings = trainingDAO.findByTrainerCriteria(username, fromDate, toDate, traineeName);
+        authenticationService.authenticateTrainer(username, password);
+        List<Training> trainings = trainingRepository.findByTrainerCriteria(username, fromDate, toDate, traineeName);
         log.info("Retrieved {} trainings for trainer: username={}", trainings.size(), username);
         return trainings;
     }
 
     public List<Trainer> getUnassignedTrainers(String traineeUsername, String traineePassword) {
-        authenticateTrainee(traineeUsername, traineePassword);
-        List<Trainer> trainers = trainerDAO.findUnassignedToTrainee(traineeUsername);
+        authenticationService.authenticateTrainee(traineeUsername, traineePassword);
+        List<Trainer> trainers = trainerRepository.findUnassignedToTrainee(traineeUsername);
         log.info("Retrieved {} unassigned trainers for trainee: username={}", trainers.size(), traineeUsername);
         return trainers;
     }

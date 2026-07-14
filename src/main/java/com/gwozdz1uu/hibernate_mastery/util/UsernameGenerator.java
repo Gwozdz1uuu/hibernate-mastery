@@ -1,36 +1,33 @@
 package com.gwozdz1uu.hibernate_mastery.util;
 
-import com.gwozdz1uu.hibernate_mastery.entity.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.function.Predicate;
 
 @Component
 public class UsernameGenerator {
 
     private static final Logger logger = LoggerFactory.getLogger(UsernameGenerator.class);
 
-    public String generateUsername(String firstName, String lastName, List<? extends User> existingUsers) {
-        String baseUsername = firstName + "." + lastName;
-        Set<String> existingUsernames = existingUsers.stream()
-                .map(User::getUsername)
-                .collect(Collectors.toSet());
-
-        if (!existingUsernames.contains(baseUsername)) {
-            logger.debug("Generated username: {}", baseUsername);
-            return baseUsername;
+    public String generateUniqueUsername(
+            String firstName,
+            String lastName,
+            Predicate<String> existsCheck
+    ) {
+        String base = firstName + "." + lastName;
+        if (!existsCheck.test(base)) {
+            logger.debug("Generated username: {}", base);
+            return base;
         }
 
         int serial = 1;
-        while (existingUsernames.contains(baseUsername + serial)) {
+        while (existsCheck.test(base + serial)) {
             serial++;
         }
-        String generatedUsername = baseUsername + serial;
-        logger.debug("Username collision detected for '{}', generated: {}", baseUsername, generatedUsername);
+        String generatedUsername = base + serial;
+        logger.debug("Username collision detected for '{}', generated: {}", base, generatedUsername);
         return generatedUsername;
     }
 }
