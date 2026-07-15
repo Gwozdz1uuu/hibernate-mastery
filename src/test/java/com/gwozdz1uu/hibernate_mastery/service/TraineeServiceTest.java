@@ -1,48 +1,28 @@
 package com.gwozdz1uu.hibernate_mastery.service;
 
+import com.gwozdz1uu.hibernate_mastery.AbstractIntegrationTest;
 import com.gwozdz1uu.hibernate_mastery.entity.Trainee;
 import com.gwozdz1uu.hibernate_mastery.entity.Trainer;
 import com.gwozdz1uu.hibernate_mastery.entity.Training;
 import com.gwozdz1uu.hibernate_mastery.entity.TrainingType;
 import com.gwozdz1uu.hibernate_mastery.exception.AuthenticationException;
 import com.gwozdz1uu.hibernate_mastery.exception.ValidationException;
-import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
-@Transactional
-class TraineeServiceTest {
-
-    @Autowired
-    private TraineeService traineeService;
-
-    @Autowired
-    private TrainerService trainerService;
+class TraineeServiceTest extends AbstractIntegrationTest {
 
     @Autowired
     private TrainingService trainingService;
 
-    @Autowired
-    private EntityManager em;
-
-    private TrainingType persistType(String name) {
-        TrainingType type = new TrainingType(name);
-        em.persist(type);
-        em.flush();
-        return type;
-    }
-
     @Test
     void createTrainee_shouldGenerateUsernameAndPassword() {
-        Trainee t = traineeService.createTrainee("John", "Doe", null, null);
+        Trainee t = createTrainee("John", "Doe");
 
         assertNotNull(t.getId());
         assertEquals("John.Doe", t.getUsername());
@@ -53,8 +33,8 @@ class TraineeServiceTest {
 
     @Test
     void createTrainee_duplicateName_shouldAppendSerial() {
-        traineeService.createTrainee("John", "Doe", null, null);
-        Trainee second = traineeService.createTrainee("John", "Doe", null, null);
+        createTrainee("John", "Doe");
+        Trainee second = createTrainee("John", "Doe");
 
         assertEquals("John.Doe1", second.getUsername());
     }
@@ -67,33 +47,33 @@ class TraineeServiceTest {
 
     @Test
     void matchCredentials_correctPassword_shouldReturnTrue() {
-        Trainee t = traineeService.createTrainee("Jane", "Doe", null, null);
+        Trainee t = createTrainee("Jane", "Doe");
         assertTrue(traineeService.matchCredentials(t.getUsername(), t.getPassword()));
     }
 
     @Test
     void matchCredentials_wrongPassword_shouldReturnFalse() {
-        Trainee t = traineeService.createTrainee("Jane", "Doe", null, null);
+        Trainee t = createTrainee("Jane", "Doe");
         assertFalse(traineeService.matchCredentials(t.getUsername(), "wrongpass"));
     }
 
     @Test
     void getByUsername_validCredentials_shouldReturnTrainee() {
-        Trainee created = traineeService.createTrainee("Alice", "Smith", null, null);
+        Trainee created = createTrainee("Alice", "Smith");
         Trainee selected = traineeService.getByUsername(created.getUsername(), created.getPassword());
         assertEquals(created.getId(), selected.getId());
     }
 
     @Test
     void getByUsername_invalidPassword_shouldThrow() {
-        Trainee created = traineeService.createTrainee("Alice", "Smith", null, null);
+        Trainee created = createTrainee("Alice", "Smith");
         assertThrows(AuthenticationException.class,
                 () -> traineeService.getByUsername(created.getUsername(), "wrong"));
     }
 
     @Test
     void changePassword_shouldUpdatePassword() {
-        Trainee trainee = traineeService.createTrainee("Bob", "Jones", null, null);
+        Trainee trainee = createTrainee("Bob", "Jones");
         String oldPassword = trainee.getPassword();
 
         traineeService.changePassword(trainee.getUsername(), oldPassword, "newSecret99");
@@ -104,7 +84,7 @@ class TraineeServiceTest {
 
     @Test
     void updateProfile_shouldUpdateFields() {
-        Trainee trainee = traineeService.createTrainee("Carl", "White", null, null);
+        Trainee trainee = createTrainee("Carl", "White");
         LocalDate dob = LocalDate.of(1990, 5, 15);
 
         Trainee updated = traineeService.updateProfile(
@@ -125,7 +105,7 @@ class TraineeServiceTest {
 
     @Test
     void updateProfile_blankLastName_shouldThrow() {
-        Trainee trainee = traineeService.createTrainee("Dan", "Lee", null, null);
+        Trainee trainee = createTrainee("Dan", "Lee");
         assertThrows(ValidationException.class,
                 () -> traineeService.updateProfile(
                         trainee.getUsername(), trainee.getPassword(),
@@ -134,7 +114,7 @@ class TraineeServiceTest {
 
     @Test
     void setActive_shouldToggleActiveStatus() {
-        Trainee trainee = traineeService.createTrainee("Eva", "Stone", null, null);
+        Trainee trainee = createTrainee("Eva", "Stone");
         assertTrue(trainee.isActive());
 
         traineeService.setActive(trainee.getUsername(), trainee.getPassword(), false);
@@ -147,11 +127,11 @@ class TraineeServiceTest {
     void updateTrainersList_shouldReplaceList() {
         TrainingType type = persistType("Yoga");
 
-        Trainee trainee = traineeService.createTrainee("Alice", "Smith", null, null);
+        Trainee trainee = createTrainee("Alice", "Smith");
         String pw = trainee.getPassword();
 
-        Trainer trainer1 = trainerService.createTrainer("Bob", "Brown", type);
-        Trainer trainer2 = trainerService.createTrainer("Carl", "White", type);
+        Trainer trainer1 = createTrainer("Bob", "Brown", type);
+        Trainer trainer2 = createTrainer("Carl", "White", type);
 
         List<Trainer> updated = traineeService.updateTrainersList(
                 trainee.getUsername(),
@@ -168,11 +148,11 @@ class TraineeServiceTest {
     void deleteByUsername_shouldCascadeDeleteTrainings() {
         TrainingType type = persistType("Cardio");
 
-        Trainee trainee = traineeService.createTrainee("Dan", "Lee", null, null);
+        Trainee trainee = createTrainee("Dan", "Lee");
         String traineeUsername = trainee.getUsername();
         String traineePassword = trainee.getPassword();
 
-        Trainer trainer = trainerService.createTrainer("Eva", "Stone", type);
+        Trainer trainer = createTrainer("Eva", "Stone", type);
 
         Training training = trainingService.addTraining(
                 traineeUsername,
@@ -204,9 +184,9 @@ class TraineeServiceTest {
         TrainingType yoga = persistType("YogaFilter");
         TrainingType cardio = persistType("CardioFilter");
 
-        Trainee trainee = traineeService.createTrainee("Filter", "Trainee", null, null);
-        Trainer yogaTrainer = trainerService.createTrainer("Yoga", "Master", yoga);
-        Trainer cardioTrainer = trainerService.createTrainer("Cardio", "Coach", cardio);
+        Trainee trainee = createTrainee("Filter", "Trainee");
+        Trainer yogaTrainer = createTrainer("Yoga", "Master", yoga);
+        Trainer cardioTrainer = createTrainer("Cardio", "Coach", cardio);
 
         trainingService.addTraining(
                 trainee.getUsername(), trainee.getPassword(),

@@ -1,5 +1,6 @@
 package com.gwozdz1uu.hibernate_mastery.service;
 
+import com.gwozdz1uu.hibernate_mastery.AbstractIntegrationTest;
 import com.gwozdz1uu.hibernate_mastery.entity.Trainee;
 import com.gwozdz1uu.hibernate_mastery.entity.Trainer;
 import com.gwozdz1uu.hibernate_mastery.entity.Training;
@@ -7,40 +8,24 @@ import com.gwozdz1uu.hibernate_mastery.entity.TrainingType;
 import com.gwozdz1uu.hibernate_mastery.exception.AuthenticationException;
 import com.gwozdz1uu.hibernate_mastery.exception.EntityNotFoundException;
 import com.gwozdz1uu.hibernate_mastery.exception.ValidationException;
-import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
-@Transactional
-class TrainingServiceTest {
-
-    @Autowired
-    private TraineeService traineeService;
-
-    @Autowired
-    private TrainerService trainerService;
+class TrainingServiceTest extends AbstractIntegrationTest {
 
     @Autowired
     private TrainingService trainingService;
 
-    @Autowired
-    private EntityManager em;
-
     @Test
     void addTraining_shouldPersistTraining() {
-        TrainingType type = new TrainingType("Resistance");
-        em.persist(type);
-        em.flush();
+        TrainingType type = persistType("Resistance");
 
-        Trainee trainee = traineeService.createTrainee("Yana", "Fox", null, null);
-        Trainer trainer = trainerService.createTrainer("Zed", "Wolf", type);
+        Trainee trainee = createTrainee("Yana", "Fox");
+        Trainer trainer = createTrainer("Zed", "Wolf", type);
 
         Training training = trainingService.addTraining(
                 trainee.getUsername(),
@@ -65,12 +50,10 @@ class TrainingServiceTest {
 
     @Test
     void addTraining_wrongPassword_shouldThrow() {
-        TrainingType type = new TrainingType("HIIT");
-        em.persist(type);
-        em.flush();
+        TrainingType type = persistType("HIIT");
 
-        Trainee trainee = traineeService.createTrainee("Test", "User", null, null);
-        Trainer trainer = trainerService.createTrainer("Coach", "HIIT", type);
+        Trainee trainee = createTrainee("Test", "User");
+        Trainer trainer = createTrainer("Coach", "HIIT", type);
 
         assertThrows(AuthenticationException.class,
                 () -> trainingService.addTraining(
@@ -81,12 +64,10 @@ class TrainingServiceTest {
 
     @Test
     void addTraining_blankTrainingName_shouldThrow() {
-        TrainingType type = new TrainingType("HIIT2");
-        em.persist(type);
-        em.flush();
+        TrainingType type = persistType("HIIT2");
 
-        Trainee trainee = traineeService.createTrainee("Val", "User", null, null);
-        Trainer trainer = trainerService.createTrainer("Coach2", "HIIT", type);
+        Trainee trainee = createTrainee("Val", "User");
+        Trainer trainer = createTrainer("Coach2", "HIIT", type);
 
         assertThrows(ValidationException.class,
                 () -> trainingService.addTraining(
@@ -97,12 +78,10 @@ class TrainingServiceTest {
 
     @Test
     void addTraining_invalidTypeId_shouldThrow() {
-        TrainingType type = new TrainingType("HIIT4");
-        em.persist(type);
-        em.flush();
+        TrainingType type = persistType("HIIT4");
 
-        Trainee trainee = traineeService.createTrainee("Val3", "User", null, null);
-        Trainer trainer = trainerService.createTrainer("Coach4", "HIIT", type);
+        Trainee trainee = createTrainee("Val3", "User");
+        Trainer trainer = createTrainer("Coach4", "HIIT", type);
 
         assertThrows(EntityNotFoundException.class,
                 () -> trainingService.addTraining(
@@ -113,12 +92,10 @@ class TrainingServiceTest {
 
     @Test
     void addTraining_zeroDuration_shouldThrow() {
-        TrainingType type = new TrainingType("HIIT3");
-        em.persist(type);
-        em.flush();
+        TrainingType type = persistType("HIIT3");
 
-        Trainee trainee = traineeService.createTrainee("Val2", "User", null, null);
-        Trainer trainer = trainerService.createTrainer("Coach3", "HIIT", type);
+        Trainee trainee = createTrainee("Val2", "User");
+        Trainer trainer = createTrainer("Coach3", "HIIT", type);
 
         assertThrows(ValidationException.class,
                 () -> trainingService.addTraining(

@@ -30,24 +30,14 @@ public class JpaTrainingDAO implements TrainingRepository {
             String trainerName,
             String trainingTypeName
     ) {
-        StringBuilder jpql = new StringBuilder(
-                "SELECT tr FROM Training tr WHERE tr.trainee.username = :username");
-        if (fromDate != null) jpql.append(" AND tr.trainingDate >= :fromDate");
-        if (toDate != null) jpql.append(" AND tr.trainingDate <= :toDate");
-        if (trainerName != null) {
-            jpql.append(" AND (tr.trainer.firstName LIKE :trainerName")
-                    .append(" OR tr.trainer.lastName LIKE :trainerName)");
-        }
-        if (trainingTypeName != null) jpql.append(" AND tr.trainingType.trainingTypeName = :typeName");
-
-        TypedQuery<Training> query = em.createQuery(jpql.toString(), Training.class);
-        query.setParameter("username", traineeUsername);
-        if (fromDate != null) query.setParameter("fromDate", fromDate);
-        if (toDate != null) query.setParameter("toDate", toDate);
-        if (trainerName != null) query.setParameter("trainerName", "%" + trainerName + "%");
-        if (trainingTypeName != null) query.setParameter("typeName", trainingTypeName);
-
-        return query.getResultList();
+        return findByCriteria(new TrainingSearchCriteria(
+                traineeUsername,
+                TrainingSearchCriteria.OwnerType.TRAINEE,
+                fromDate,
+                toDate,
+                trainerName,
+                trainingTypeName
+        ));
     }
 
     @Override
@@ -57,19 +47,47 @@ public class JpaTrainingDAO implements TrainingRepository {
             LocalDate toDate,
             String traineeName
     ) {
-        StringBuilder jpql = new StringBuilder(
-                "SELECT tr FROM Training tr WHERE tr.trainer.username = :username");
-        if (fromDate != null) jpql.append(" AND tr.trainingDate >= :fromDate");
-        if (toDate != null) jpql.append(" AND tr.trainingDate <= :toDate");
-        if (traineeName != null) {
-            jpql.append(" AND (tr.trainee.firstName LIKE :traineeName")
-                    .append(" OR tr.trainee.lastName LIKE :traineeName)");
+        return findByCriteria(new TrainingSearchCriteria(
+                trainerUsername,
+                TrainingSearchCriteria.OwnerType.TRAINER,
+                fromDate,
+                toDate,
+                traineeName,
+                null
+        ));
+    }
+
+    private List<Training> findByCriteria(TrainingSearchCriteria criteria) {
+        String ownerField = criteria.ownerType() == TrainingSearchCriteria.OwnerType.TRAINEE
+                ? "tr.trainee.username"
+                : "tr.trainer.username";
+
+        StringBuilder jpql = new StringBuilder("SELECT tr FROM Training tr WHERE ")
+                .append(ownerField)
+                .append(" = :username");
+
+        if (criteria.fromDate() != null) jpql.append(" AND tr.trainingDate >= :fromDate");
+        if (criteria.toDate() != null) jpql.append(" AND tr.trainingDate <= :toDate");
+
+        if (criteria.personName() != null) {
+            String personPrefix = criteria.ownerType() == TrainingSearchCriteria.OwnerType.TRAINEE
+                    ? "tr.trainer"
+                    : "tr.trainee";
+            jpql.append(" AND (").append(personPrefix).append(".firstName LIKE :personName")
+                    .append(" OR ").append(personPrefix).append(".lastName LIKE :personName)");
         }
+
+        if (criteria.trainingTypeName() != null) {
+            jpql.append(" AND tr.trainingType.trainingTypeName = :typeName");
+        }
+
         TypedQuery<Training> query = em.createQuery(jpql.toString(), Training.class);
-        query.setParameter("username", trainerUsername);
-        if (fromDate != null) query.setParameter("fromDate", fromDate);
-        if (toDate != null) query.setParameter("toDate", toDate);
-        if (traineeName != null) query.setParameter("traineeName", "%" + traineeName + "%");
+        query.setParameter("username", criteria.ownerUsername());
+        if (criteria.fromDate() != null) query.setParameter("fromDate", criteria.fromDate());
+        if (criteria.toDate() != null) query.setParameter("toDate", criteria.toDate());
+        if (criteria.personName() != null) query.setParameter("personName", "%" + criteria.personName() + "%");
+        if (criteria.trainingTypeName() != null) query.setParameter("typeName", criteria.trainingTypeName());
+
         return query.getResultList();
     }
 }

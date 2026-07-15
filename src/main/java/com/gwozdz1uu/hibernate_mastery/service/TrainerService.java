@@ -2,14 +2,15 @@ package com.gwozdz1uu.hibernate_mastery.service;
 
 import com.gwozdz1uu.hibernate_mastery.dao.TrainerRepository;
 import com.gwozdz1uu.hibernate_mastery.dao.TrainingRepository;
+import com.gwozdz1uu.hibernate_mastery.dto.*;
 import com.gwozdz1uu.hibernate_mastery.entity.Trainer;
 import com.gwozdz1uu.hibernate_mastery.entity.Training;
 import com.gwozdz1uu.hibernate_mastery.entity.TrainingType;
+import com.gwozdz1uu.hibernate_mastery.exception.EntityNotFoundException;
 import com.gwozdz1uu.hibernate_mastery.security.PasswordEncoder;
-import com.gwozdz1uu.hibernate_mastery.util.InputValidator;
-import com.gwozdz1uu.hibernate_mastery.util.PasswordGenerator;
-import com.gwozdz1uu.hibernate_mastery.util.UsernameGenerator;
-import lombok.AllArgsConstructor;
+import com.gwozdz1uu.hibernate_mastery.util.DtoValidator;
+import com.gwozdz1uu.hibernate_mastery.util.ProfileCreationHelper;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -20,7 +21,7 @@ import java.util.List;
 
 @Service
 @Transactional
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class TrainerService {
 
     private static final Logger log = LoggerFactory.getLogger(TrainerService.class);
@@ -28,32 +29,26 @@ public class TrainerService {
     private final AuthenticationService authenticationService;
     private final TrainerRepository trainerRepository;
     private final TrainingRepository trainingRepository;
-    private final UsernameGenerator usernameGenerator;
-    private final PasswordGenerator passwordGenerator;
+    private final ProfileCreationHelper profileCreationHelper;
     private final PasswordEncoder passwordEncoder;
-    private final InputValidator inputValidator;
+    private final DtoValidator dtoValidator;
 
-    public Trainer createTrainer(String firstName, String lastName, TrainingType specialization) {
-        inputValidator.requireNonBlank(firstName, "firstName");
-        inputValidator.requireNonBlank(lastName, "lastName");
-        inputValidator.requireNonNull(specialization, "specialization");
+    public Trainer createTrainer(CreateTrainerRequest request) {
+        dtoValidator.validate(request);
 
         Trainer trainer = new Trainer();
-        trainer.setFirstName(firstName);
-        trainer.setLastName(lastName);
-        trainer.setActive(true);
-        trainer.setSpecialization(specialization);
-
-        String username = usernameGenerator.generateUniqueUsername(
-                firstName, lastName, trainerRepository::existsByUsername);
-        String rawPassword = passwordGenerator.generatePassword();
-        trainer.setUsername(username);
-        trainer.setPassword(passwordEncoder.encode(rawPassword));
+        String rawPassword = profileCreationHelper.setupNewProfile(
+                trainer, request.firstName(), request.lastName(), trainerRepository::existsByUsername);
+        trainer.setSpecialization(request.specialization());
 
         Trainer created = trainerRepository.save(trainer);
         created.setPassword(rawPassword);
         log.info("Created trainer profile: username={}", created.getUsername());
         return created;
+    }
+
+    public Trainer createTrainer(String firstName, String lastName, TrainingType specialization) {
+        return createTrainer(new CreateTrainerRequest(firstName, lastName, specialization));
     }
 
     public boolean matchCredentials(String username, String password) {
@@ -63,17 +58,36 @@ public class TrainerService {
     }
 
     public Trainer getByUsername(String username, String password) {
-        Trainer trainer = authenticationService.authenticateTrainer(username, password);
+        authenticationService.authenticateTrainer(username, password);
+        Trainer trainer = trainerRepository.findByUsernameWithSpecialization(username)
+                .orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + username));
         log.info("Selected trainer profile: username={}", username);
         return trainer;
     }
 
-    public void changePassword(String username, String oldPassword, String newPassword) {
-        inputValidator.requireNonBlank(newPassword, "newPassword");
-        Trainer trainer = authenticationService.authenticateTrainer(username, oldPassword);
-        trainer.setPassword(passwordEncoder.encode(newPassword));
+    public void changePassword(ChangePasswordRequest request) {
+        dtoValidator.validate(request);
+        Trainer trainer = authenticationService.authenticateTrainer(request.username(), request.oldPassword());
+        trainer.setPassword(passwordEncoder.encode(request.newPassword()));
         trainerRepository.update(trainer);
-        log.info("Changed password for trainer: username={}", username);
+        log.info("Changed password for trainer: username={}", request.username());
+    }
+
+    public void changePassword(String username, String oldPassword, String newPassword) {
+        changePassword(new ChangePasswordRequest(username, oldPassword, newPassword));
+    }
+
+    public Trainer updateProfile(UpdateTrainerRequest request) {
+        dtoValidator.validate(request);
+
+        Trainer trainer = authenticationService.authenticateTrainer(request.username(), request.password());
+        trainer.setFirstName(request.firstName());
+        trainer.setLastName(request.lastName());
+        trainer.setSpecialization(request.specialization());
+        trainer.setActive(request.active());
+        Trainer updated = trainerRepository.update(trainer);
+        log.info("Updated trainer profile: username={}", request.username());
+        return updated;
     }
 
     public Trainer updateProfile(
@@ -84,18 +98,8 @@ public class TrainerService {
             TrainingType specialization,
             boolean isActive
     ) {
-        inputValidator.requireNonBlank(firstName, "firstName");
-        inputValidator.requireNonBlank(lastName, "lastName");
-        inputValidator.requireNonNull(specialization, "specialization");
-
-        Trainer trainer = authenticationService.authenticateTrainer(username, password);
-        trainer.setFirstName(firstName);
-        trainer.setLastName(lastName);
-        trainer.setSpecialization(specialization);
-        trainer.setActive(isActive);
-        Trainer updated = trainerRepository.update(trainer);
-        log.info("Updated trainer profile: username={}", username);
-        return updated;
+        return updateProfile(new UpdateTrainerRequest(
+                username, password, firstName, lastName, specialization, isActive));
     }
 
     public void setActive(String username, String password, boolean isActive) {
@@ -105,6 +109,14 @@ public class TrainerService {
         log.info("Set trainer active={} for username={}", isActive, username);
     }
 
+    public List<Training> getTrainings(TrainerTrainingSearchRequest request) {
+        authenticationService.authenticateTrainer(request.username(), request.password());
+        List<Training> trainings = trainingRepository.findByTrainerCriteria(
+                request.username(), request.fromDate(), request.toDate(), request.traineeName());
+        log.info("Retrieved {} trainings for trainer: username={}", trainings.size(), request.username());
+        return trainings;
+    }
+
     public List<Training> getTrainings(
             String username,
             String password,
@@ -112,10 +124,8 @@ public class TrainerService {
             LocalDate toDate,
             String traineeName
     ) {
-        authenticationService.authenticateTrainer(username, password);
-        List<Training> trainings = trainingRepository.findByTrainerCriteria(username, fromDate, toDate, traineeName);
-        log.info("Retrieved {} trainings for trainer: username={}", trainings.size(), username);
-        return trainings;
+        return getTrainings(new TrainerTrainingSearchRequest(
+                username, password, fromDate, toDate, traineeName));
     }
 
     public List<Trainer> getUnassignedTrainers(String traineeUsername, String traineePassword) {

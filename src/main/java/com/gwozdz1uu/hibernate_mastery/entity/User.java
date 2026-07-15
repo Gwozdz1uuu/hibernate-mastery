@@ -3,8 +3,6 @@ package com.gwozdz1uu.hibernate_mastery.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.Objects;
-
 @Entity
 @Table(name = "users")
 @Inheritance(strategy = InheritanceType.JOINED)
@@ -34,18 +32,15 @@ public class User {
     @Column(name = "is_active", nullable = false)
     private boolean isActive;
 
-
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        User user = (User) o;
-        return Objects.equals(id, user.id);
+        if (!(o instanceof User other)) return false;
+        return id != null && id.equals(other.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id);
+        return id != null ? id.hashCode() : System.identityHashCode(this);
     }
 }

@@ -9,6 +9,7 @@ public interface TrainerRepository {
     Trainer save(Trainer trainer);
     Trainer update(Trainer trainer);
     Optional<Trainer> findByUsername(String username);
+    Optional<Trainer> findByUsernameWithSpecialization(String username);
     boolean existsByUsername(String username);
     List<Trainer> findUnassignedToTrainee(String traineeUsername);
 }

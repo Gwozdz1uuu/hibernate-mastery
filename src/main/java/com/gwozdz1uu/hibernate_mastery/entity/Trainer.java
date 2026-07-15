@@ -8,8 +8,6 @@ import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-
 
 @Setter
 @Getter
@@ -20,7 +18,7 @@ import java.util.Objects;
 @PrimaryKeyJoinColumn(name = "user_id")
 public class Trainer extends User {
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "specialization_id", nullable = false)
     private TrainingType specialization;
 
@@ -31,19 +29,5 @@ public class Trainer extends User {
                    boolean isActive, TrainingType specialization) {
         super(id, firstName, lastName, username, password, isActive);
         this.specialization = specialization;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
-        Trainer trainer = (Trainer) o;
-        return Objects.equals(specialization, trainer.specialization);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(super.hashCode(), specialization);
     }
 }

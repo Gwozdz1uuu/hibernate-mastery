@@ -1,36 +1,22 @@
 package com.gwozdz1uu.hibernate_mastery.facade;
 
+import com.gwozdz1uu.hibernate_mastery.AbstractIntegrationTest;
 import com.gwozdz1uu.hibernate_mastery.entity.Trainee;
 import com.gwozdz1uu.hibernate_mastery.entity.Trainer;
 import com.gwozdz1uu.hibernate_mastery.entity.Training;
 import com.gwozdz1uu.hibernate_mastery.entity.TrainingType;
-import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
-@Transactional
-class GymFacadeTest {
+class GymFacadeTest extends AbstractIntegrationTest {
 
     @Autowired
     private GymFacade gymFacade;
-
-    @Autowired
-    private EntityManager em;
-
-    private TrainingType persistType(String name) {
-        TrainingType type = new TrainingType(name);
-        em.persist(type);
-        em.flush();
-        return type;
-    }
 
     @Test
     void createAndSelectTraineeProfile() {

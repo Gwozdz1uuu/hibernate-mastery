@@ -36,6 +36,16 @@ public class JpaTrainerDAO implements TrainerRepository {
     }
 
     @Override
+    public Optional<Trainer> findByUsernameWithSpecialization(String username) {
+        return em.createQuery(
+                        "SELECT t FROM Trainer t JOIN FETCH t.specialization WHERE t.username = :username",
+                        Trainer.class)
+                .setParameter("username", username)
+                .getResultStream()
+                .findFirst();
+    }
+
+    @Override
     public boolean existsByUsername(String username) {
         Long count = em.createQuery(
                         "SELECT COUNT(t) FROM Trainer t WHERE t.username = :username", Long.class)

@@ -9,7 +9,6 @@ import lombok.ToString;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 @Setter
 @Getter
@@ -42,20 +41,5 @@ public class Trainee extends User {
         super(id, firstName, lastName, username, password, isActive);
         this.dateOfBirth = dateOfBirth;
         this.address = address;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
-        Trainee trainee = (Trainee) o;
-        return Objects.equals(dateOfBirth, trainee.dateOfBirth) &&
-                Objects.equals(address, trainee.address);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(super.hashCode(), dateOfBirth, address);
     }
 }

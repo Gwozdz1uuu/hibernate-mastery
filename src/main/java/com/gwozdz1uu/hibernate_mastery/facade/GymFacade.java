@@ -1,27 +1,29 @@
 package com.gwozdz1uu.hibernate_mastery.facade;
 
+import com.gwozdz1uu.hibernate_mastery.dto.*;
 import com.gwozdz1uu.hibernate_mastery.entity.*;
 import com.gwozdz1uu.hibernate_mastery.service.TraineeService;
 import com.gwozdz1uu.hibernate_mastery.service.TrainerService;
 import com.gwozdz1uu.hibernate_mastery.service.TrainingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.function.Supplier;
 
 @Component
 public class GymFacade {
 
     private static final Logger log = LoggerFactory.getLogger(GymFacade.class);
+    private static final String MDC_USERNAME = "username";
 
     private final TraineeService traineeService;
     private final TrainerService trainerService;
     private final TrainingService trainingService;
 
-    @Autowired
     public GymFacade(TraineeService traineeService, TrainerService trainerService, TrainingService trainingService) {
         this.traineeService = traineeService;
         this.trainerService = trainerService;
@@ -29,37 +31,43 @@ public class GymFacade {
     }
 
     public Trainer createTrainerProfile(String firstName, String lastName, TrainingType specialization) {
-        log.debug("Creating trainer profile for {} {}", firstName, lastName);
-        return trainerService.createTrainer(firstName, lastName, specialization);
+        log.debug("action=createTrainerProfile, firstName={}, lastName={}", firstName, lastName);
+        return trainerService.createTrainer(new CreateTrainerRequest(firstName, lastName, specialization));
     }
 
     public Trainee createTraineeProfile(String firstName, String lastName, LocalDate dateOfBirth, String address) {
-        log.debug("Creating trainee profile for {} {}", firstName, lastName);
-        return traineeService.createTrainee(firstName, lastName, dateOfBirth, address);
+        log.debug("action=createTraineeProfile, firstName={}, lastName={}", firstName, lastName);
+        return traineeService.createTrainee(new CreateTraineeRequest(firstName, lastName, dateOfBirth, address));
     }
 
     public boolean authenticateTrainee(String username, String password) {
-        return traineeService.matchCredentials(username, password);
+        return withUsernameContext(username, () -> traineeService.matchCredentials(username, password));
     }
 
     public boolean authenticateTrainer(String username, String password) {
-        return trainerService.matchCredentials(username, password);
+        return withUsernameContext(username, () -> trainerService.matchCredentials(username, password));
     }
 
     public Trainer selectTrainerByUsername(String username, String password) {
-        return trainerService.getByUsername(username, password);
+        return withUsernameContext(username, () -> trainerService.getByUsername(username, password));
     }
 
     public Trainee selectTraineeByUsername(String username, String password) {
-        return traineeService.getByUsername(username, password);
+        return withUsernameContext(username, () -> traineeService.getByUsername(username, password));
     }
 
     public void changeTraineePassword(String username, String oldPassword, String newPassword) {
-        traineeService.changePassword(username, oldPassword, newPassword);
+        withUsernameContext(username, () -> {
+            traineeService.changePassword(new ChangePasswordRequest(username, oldPassword, newPassword));
+            return null;
+        });
     }
 
     public void changeTrainerPassword(String username, String oldPassword, String newPassword) {
-        trainerService.changePassword(username, oldPassword, newPassword);
+        withUsernameContext(username, () -> {
+            trainerService.changePassword(new ChangePasswordRequest(username, oldPassword, newPassword));
+            return null;
+        });
     }
 
     public Trainer updateTrainerProfile(
@@ -70,7 +78,8 @@ public class GymFacade {
             TrainingType specialization,
             boolean isActive
     ) {
-        return trainerService.updateProfile(username, password, firstName, lastName, specialization, isActive);
+        return withUsernameContext(username, () -> trainerService.updateProfile(
+                new UpdateTrainerRequest(username, password, firstName, lastName, specialization, isActive)));
     }
 
     public Trainee updateTraineeProfile(
@@ -82,19 +91,29 @@ public class GymFacade {
             String address,
             boolean isActive
     ) {
-        return traineeService.updateProfile(username, password, firstName, lastName, dateOfBirth, address, isActive);
+        return withUsernameContext(username, () -> traineeService.updateProfile(
+                new UpdateTraineeRequest(username, password, firstName, lastName, dateOfBirth, address, isActive)));
     }
 
     public void activateOrDeactivateTrainee(String username, String password, boolean isActive) {
-        traineeService.setActive(username, password, isActive);
+        withUsernameContext(username, () -> {
+            traineeService.setActive(username, password, isActive);
+            return null;
+        });
     }
 
     public void activateOrDeactivateTrainer(String username, String password, boolean isActive) {
-        trainerService.setActive(username, password, isActive);
+        withUsernameContext(username, () -> {
+            trainerService.setActive(username, password, isActive);
+            return null;
+        });
     }
 
     public void deleteTraineeByUsername(String username, String password) {
-        traineeService.deleteByUsername(username, password);
+        withUsernameContext(username, () -> {
+            traineeService.deleteByUsername(username, password);
+            return null;
+        });
     }
 
     public List<Training> getTraineeTrainings(
@@ -105,7 +124,8 @@ public class GymFacade {
             String trainerName,
             String trainingTypeName
     ) {
-        return traineeService.getTrainings(username, password, fromDate, toDate, trainerName, trainingTypeName);
+        return withUsernameContext(username, () -> traineeService.getTrainings(
+                new TraineeTrainingSearchRequest(username, password, fromDate, toDate, trainerName, trainingTypeName)));
     }
 
     public List<Training> getTrainerTrainings(
@@ -115,7 +135,8 @@ public class GymFacade {
             LocalDate toDate,
             String traineeName
     ) {
-        return trainerService.getTrainings(username, password, fromDate, toDate, traineeName);
+        return withUsernameContext(username, () -> trainerService.getTrainings(
+                new TrainerTrainingSearchRequest(username, password, fromDate, toDate, traineeName)));
     }
 
     public Training addTraining(
@@ -127,19 +148,14 @@ public class GymFacade {
             LocalDate trainingDate,
             int durationMinutes
     ) {
-        return trainingService.addTraining(
-                traineeUsername,
-                traineePassword,
-                trainerUsername,
-                trainingName,
-                trainingTypeId,
-                trainingDate,
-                durationMinutes
-        );
+        return withUsernameContext(traineeUsername, () -> trainingService.addTraining(new AddTrainingRequest(
+                traineeUsername, traineePassword, trainerUsername,
+                trainingName, trainingTypeId, trainingDate, durationMinutes)));
     }
 
     public List<Trainer> getUnassignedTrainers(String traineeUsername, String traineePassword) {
-        return trainerService.getUnassignedTrainers(traineeUsername, traineePassword);
+        return withUsernameContext(traineeUsername,
+                () -> trainerService.getUnassignedTrainers(traineeUsername, traineePassword));
     }
 
     public List<Trainer> updateTraineeTrainersList(
@@ -147,6 +163,16 @@ public class GymFacade {
             String traineePassword,
             List<String> trainerUsernames
     ) {
-        return traineeService.updateTrainersList(traineeUsername, traineePassword, trainerUsernames);
+        return withUsernameContext(traineeUsername, () -> traineeService.updateTrainersList(
+                new UpdateTrainersListRequest(traineeUsername, traineePassword, trainerUsernames)));
+    }
+
+    private <T> T withUsernameContext(String username, Supplier<T> action) {
+        MDC.put(MDC_USERNAME, username);
+        try {
+            return action.get();
+        } finally {
+            MDC.remove(MDC_USERNAME);
+        }
     }
 }
